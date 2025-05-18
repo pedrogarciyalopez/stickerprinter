@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <title>Гибкое расположение наклеек</title>
+  <script src="https://cdn.jsdelivr.net/npm/pdf-lib/dist/pdf-lib.min.js"></script>
+  <style>
+      label {
+          display: block;
+          margin-top: 10px;
+      }
+      input {
+          width: 60px;
+          margin-left: 5px;
+      }
+  </style>
+</head>
+<body>
+
+<h2>Выберите PDF файл</h2>
+<input type="file" id="fileInput" accept="application/pdf" />
+
+<label>
+  Наклеек в ряду (горизонтально):
+  <input type="number" id="stickersPerRow" min="1" max="20" value="2" />
+</label>
+
+<label>
+  Количество строк (вертикально):
+  <input type="number" id="rowsCount" min="1" max="20" value="8" />
+</label>
+
+<button id="btnProcess">Создать PDF с наклейками</button>
+
+<h3>Превью нового PDF</h3>
+<iframe id="preview" style="width: 700px; height: 1100px;" frameborder="0"></iframe>
+
+<script>
+  const { PDFDocument } = PDFLib;
+
+  document.getElementById('btnProcess').onclick = async () => {
+    const input = document.getElementById('fileInput');
+    if (!input.files.length) {
+      alert('Пожалуйста, выберите PDF файл!');
+      return;
+    }
+
+    const stickersPerRow = parseInt(document.getElementById('stickersPerRow').value);
+    const rowsCount = parseInt(document.getElementById('rowsCount').value);
+
+    if (stickersPerRow < 1 || rowsCount < 1) {
+      alert('Количество наклеек и строк должно быть не меньше 1');
+      return;
+    }
+
+    try {
+      const file = input.files[0];
+      const arrayBuffer = await file.arrayBuffer();
+
+      // Загружаем исходный PDF
+      const existingPdf = await PDFDocument.load(arrayBuffer);
+
+      // Получаем первую страницу исходного PDF для размера
+      const firstPageOriginal = existingPdf.getPage(0);
+      const width = firstPageOriginal.getWidth();
+      const height = firstPageOriginal.getHeight();
+
+      // Создаем новый PDF
+      const newPdf = await PDFDocument.create();
+
+      // Встраиваем первую страницу исходного PDF в новый
+      const [embeddedPage] = await newPdf.embedPages([firstPageOriginal]);
+
+      // Создаем страницу с размером, подстроенным под количество наклеек
+      const pageWidth = width * stickersPerRow;
+      const pageHeight = height * rowsCount;
+      const page = newPdf.addPage([pageWidth, pageHeight]);
+
+      // Рисуем наклейки в сетке
+      for (let row = 0; row < rowsCount; row++) {
+        for (let col = 0; col < stickersPerRow; col++) {
+          page.drawPage(embeddedPage, {
+            x: col * width,
+            y: height * (rowsCount - 1 - row), // рисуем сверху вниз
+            width: width,
+            height: height,
+          });
+        }
+      }
+
+      // Сохраняем PDF
+      const pdfBytes = await newPdf.save();
+
+      // Создаем Blob и показываем в iframe
+      const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+      const url = URL.createObjectURL(blob);
+
+      document.getElementById('preview').src = url;
+
+    } catch (err) {
+      alert('Ошибка: ' + err.message);
+    }
+  };
+</script>
+
+</body>
+</html>
