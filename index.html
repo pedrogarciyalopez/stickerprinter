@@ -21,7 +21,7 @@
       #pdfCanvas {
           display: block;
           width: 100%;
-          height: auto; /* сохраняем пропорции */
+          height: auto;
       }
   </style>
 </head>
@@ -56,6 +56,11 @@
       <input type="number" class="form-control" id="rowsCount" min="1" max="20" value="8" />
     </div>
 
+    <div class="col-6 col-md-3">
+      <label for="topGapMm" class="form-label">Отступ сверху (мм)</label>
+      <input type="number" class="form-control" id="topGapMm" min="0" value="2" />
+    </div>
+
     <div class="col-12">
       <div class="form-check">
         <input class="form-check-input" type="checkbox" value="" id="showBorders" checked>
@@ -83,6 +88,7 @@
   const A4_WIDTH = 595.28;
   const A4_HEIGHT = 841.89;
   let pdfBytesGlobal = null;
+  let topGap = 2; // значение по умолчанию
 
   document.addEventListener("DOMContentLoaded", () => {
     const fileInput = document.getElementById('fileInput');
@@ -116,6 +122,7 @@
       const stickersPerRow = parseInt(document.getElementById('stickersPerRow').value);
       const rowsCount = parseInt(document.getElementById('rowsCount').value);
       const showBorders = document.getElementById('showBorders').checked;
+      topGap = parseFloat(document.getElementById('topGapMm').value) * MM_TO_PT;
 
       const arrayBuffer = await file.arrayBuffer();
       const sourcePdf = await PDFDocument.load(arrayBuffer);
@@ -133,7 +140,7 @@
       const blockHeight = rowsCount * cellHeightPt;
 
       const startX = (A4_WIDTH - blockWidth) / 2;
-      const startY = (A4_HEIGHT - blockHeight);// - 7;
+      const startY = (A4_HEIGHT - blockHeight) - topGap;
 
       for (let row = 0; row < rowsCount; row++) {
         for (let col = 0; col < stickersPerRow; col++) {
